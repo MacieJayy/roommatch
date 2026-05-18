@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>RoomMatch</title>
+<style>
+/* ── Reset & base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --coral:      #FF6B6B;
+  --coral-dark: #e85555;
+  --coral-light:#fff0f0;
+  --pass:       #e0e0e0;
+  --pass-dark:  #bdbdbd;
+  --bg:         #f5f5f5;
+  --card-bg:    #ffffff;
+  --text:       #222222;
+  --muted:      #777777;
+  --radius:     16px;
+  --nav-h:      64px;
+  --header-h:   56px;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+input, textarea, select, button {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+button { cursor: pointer; border: none; background: none; }
+
+.hidden { display: none !important; }
+
+/* ── Auth screen ──────────────────────────────────────────── */
+#screen-auth {
+  width: 100%;
+  max-width: 420px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px 32px;
+  gap: 24px;
+}
+
+.auth-brand { text-align: center; }
+.auth-brand h1 {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: var(--coral);
+  letter-spacing: -1px;
+}
+.auth-brand p { color: var(--muted); margin-top: 4px; }
+
+.tab-bar {
+  display: flex;
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.tab-bar button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+.tab-bar button.active {
+  background: var(--coral);
+  color: #fff;
+}
+
+.auth-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-form input,
+.auth-form textarea,
+.auth-form select {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.auth-form input:focus,
+.auth-form textarea:focus,
+.auth-form select:focus { border-color: var(--coral); }
+
+.auth-form textarea { resize: vertical; min-height: 80px; }
+.auth-form select { appearance: none; }
+
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: var(--coral);
+  color: #fff;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: background 0.2s, transform 0.1s;
+}
+.btn-primary:active { background: var(--coral-dark); transform: scale(0.98); }
+
+.error-msg {
+  color: var(--coral-dark);
+  font-size: 0.875rem;
+  text-align: center;
+  min-height: 20px;
+}
+
+.stats-note {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── App shell ────────────────────────────────────────────── */
+#screen-app {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+#app-header {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--card-bg);
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+#app-header h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--coral);
+}
+#btn-logout {
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #e5e5e5;
+}
+#btn-logout:hover { color: var(--coral); border-color: var(--coral); }
+
+/* Main content area */
+#app-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: var(--nav-h);
+}
+
+/* Bottom nav */
+#app-nav {
+  height: var(--nav-h);
+  display: flex;
+  background: var(--card-bg);
+  border-top: 1px solid #f0f0f0;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: 50;
+}
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.nav-btn .nav-icon { font-size: 1.4rem; line-height: 1; }
+.nav-btn.active { color: var(--coral); }
+
+/* ── Browse view ──────────────────────────────────────────── */
+#view-browse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 20px;
+  gap: 20px;
+}
+
+.browse-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Profile card */
+.profile-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s ease;
+  will-change: transform, opacity;
+}
+
+.profile-card.anim-right {
+  transform: translateX(120%) rotate(18deg) !important;
+  opacity: 0 !important;
+}
+.profile-card.anim-left {
+  transform: translateX(-120%) rotate(-18deg) !important;
+  opacity: 0 !important;
+}
+
+.card-avatar-area {
+  padding: 32px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(145deg, var(--coral-light) 0%, #fff 60%);
+}
+
+.avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  flex-shrink: 0;
+}
+
+.card-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+}
+.card-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.badge-city { background: #f0f4ff; color: #4a6fa5; }
+.badge-type-roommate { background: #e8f5e9; color: #388e3c; }
+.badge-type-room     { background: #fff8e1; color: #f57c00; }
+
+.card-body {
+  padding: 16px 24px 24px;
+}
+.card-desc {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  min-height: 44px;
+}
+
+/* Swipe buttons */
+.swipe-buttons {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-swipe {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-swipe:active { transform: scale(0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+
+.btn-pass { background: #fff; border: 2.5px solid var(--pass); color: var(--pass-dark); }
+.btn-pass:hover { border-color: #bbb; }
+.btn-like { background: var(--coral); color: #fff; }
+.btn-like:hover { background: var(--coral-dark); }
+
+.no-profiles {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+}
+.no-profiles .emoji { font-size: 3rem; margin-bottom: 12px; }
+.no-profiles h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 8px; }
+
+/* ── Matches view ─────────────────────────────────────────── */
+#view-matches { padding: 16px 20px; }
+
+.section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.match-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border-radius: 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.match-item:active { transform: scale(0.98); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+.match-info { flex: 1; overflow: hidden; }
+.match-name { font-weight: 700; font-size: 0.95rem; }
+.match-sub { font-size: 0.8rem; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.match-arrow { color: var(--muted); font-size: 1rem; }
+
+.no-matches {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+.no-matches .emoji { font-size: 3rem; margin-bottom: 12px; }
+.no-matches h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 8px; }
+
+/* ── Chat view ────────────────────────────────────────────── */
+#view-chat {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--header-h) - var(--nav-h));
+}
+
+.chat-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--card-bg);
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+.btn-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  font-size: 1.1rem;
+  color: var(--text);
+  transition: background 0.2s;
+}
+.btn-back:hover { background: #ebebeb; }
+.chat-partner-name { font-weight: 700; font-size: 1rem; }
+.chat-partner-meta { font-size: 0.78rem; color: var(--muted); }
+
+#messages-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-behavior: smooth;
+}
+
+.msg-bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.msg-bubble.mine {
+  align-self: flex-end;
+  background: var(--coral);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.msg-bubble.theirs {
+  align-self: flex-start;
+  background: var(--card-bg);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.msg-sender {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 3px;
+  padding: 0 4px;
+}
+.msg-time { font-size: 0.7rem; margin-top: 3px; opacity: 0.65; }
+
+.chat-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 20px;
+}
+
+.chat-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--card-bg);
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+#msg-input {
+  flex: 1;
+  padding: 11px 16px;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 24px;
+  outline: none;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+#msg-input:focus { border-color: var(--coral); }
+
+#btn-send {
+  width: 44px;
+  height: 44px;
+  background: var(--coral);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  transition: background 0.2s, transform 0.1s;
+}
+#btn-send:hover { background: var(--coral-dark); }
+#btn-send:active { transform: scale(0.9); }
+#btn-send:disabled { background: var(--pass); color: var(--pass-dark); cursor: not-allowed; }
+
+/* ── Match modal ──────────────────────────────────────────── */
+#match-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-box {
+  background: #fff;
+  border-radius: 24px;
+  padding: 36px 28px 28px;
+  text-align: center;
+  max-width: 340px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: slideUp 0.35s cubic-bezier(.4,0,.2,1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modal-hearts { font-size: 3rem; margin-bottom: 8px; }
+.modal-box h2 { font-size: 1.8rem; font-weight: 800; color: var(--coral); margin-bottom: 4px; }
+.modal-sub { color: var(--muted); margin-bottom: 20px; font-size: 0.9rem; }
+.modal-partner-name { font-weight: 700; font-size: 1.1rem; }
+
+.modal-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+.btn-modal-chat {
+  padding: 13px;
+  background: var(--coral);
+  color: #fff;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+.btn-modal-chat:hover { background: var(--coral-dark); }
+.btn-modal-continue {
+  padding: 13px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ── Toast ────────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: calc(var(--nav-h) + 16px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #222;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 300;
+  max-width: 90vw;
+  text-align: center;
+  white-space: normal;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Loading spinner ──────────────────────────────────────── */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f0f0f0;
+  border-top-color: var(--coral);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 40px auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ AUTH SCREEN ═══════════════════════════════ -->
+<div id="screen-auth">
+  <div class="auth-brand">
+    <h1>RoomMatch</h1>
+    <p>Znajdź idealnego współlokatora</p>
+  </div>
+
+  <div class="tab-bar">
+    <button id="tab-login"    onclick="switchTab('login')"    class="active">Zaloguj się</button>
+    <button id="tab-register" onclick="switchTab('register')">Zarejestruj</button>
+  </div>
+
+  <!-- Login -->
+  <form id="form-login" class="auth-form" onsubmit="handleLogin(event)">
+    <input name="name"     placeholder="Imię / nick"  required autocomplete="username">
+    <input name="password" placeholder="Hasło" type="password" required autocomplete="current-password">
+    <p class="error-msg" id="login-err"></p>
+    <button type="submit" class="btn-primary">Zaloguj się</button>
+  </form>
+
+  <!-- Register -->
+  <form id="form-register" class="auth-form hidden" onsubmit="handleRegister(event)">
+    <input name="name" placeholder="Imię / nick *" required maxlength="40" autocomplete="username">
+    <div class="row-2">
+      <input name="age"  placeholder="Wiek *" type="number" min="18" max="99" required>
+      <input name="city" placeholder="Miasto *" required maxlength="40">
+    </div>
+    <select name="type" required>
+      <option value="">Czego szukasz? *</option>
+      <option value="roommate">Mam pokój → szukam współlokatora</option>
+      <option value="room">Szukam pokoju / miejsca</option>
+    </select>
+    <textarea name="description" placeholder="Opisz siebie w kilku słowach... (opcjonalne)" maxlength="300"></textarea>
+    <input name="password" placeholder="Hasło *" type="password" required autocomplete="new-password">
+    <p class="error-msg" id="reg-err"></p>
+    <button type="submit" class="btn-primary">Zarejestruj się</button>
+  </form>
+
+  <p class="stats-note" id="stats-note"></p>
+</div>
+
+<!-- ═══════════════════════════ APP SCREEN ════════════════════════════════ -->
+<div id="screen-app" class="hidden">
+
+  <header id="app-header">
+    <h1>RoomMatch</h1>
+    <button id="btn-logout" onclick="logout()">Wyloguj</button>
+  </header>
+
+  <div id="app-content">
+
+    <!-- ── Browse ─────────────────────────────────────── -->
+    <div id="view-browse" class="hidden">
+      <div id="browse-inner" style="display:flex;flex-direction:column;align-items:center;padding:24px 20px;gap:20px">
+        <div class="spinner" id="browse-spinner"></div>
+      </div>
+    </div>
+
+    <!-- ── Matches ────────────────────────────────────── -->
+    <div id="view-matches" class="hidden">
+      <div style="padding:16px 20px">
+        <p class="section-title">Moje dopasowania</p>
+        <div id="matches-list"></div>
+      </div>
+    </div>
+
+    <!-- ── Chat ──────────────────────────────────────── -->
+    <div id="view-chat" class="hidden">
+      <div class="chat-topbar">
+        <button class="btn-back" onclick="showView('matches')">&#8592;</button>
+        <div>
+          <div class="chat-partner-name" id="chat-partner-name">—</div>
+          <div class="chat-partner-meta" id="chat-partner-meta"></div>
+        </div>
+      </div>
+      <div id="messages-list"></div>
+      <div class="chat-input-bar">
+        <input id="msg-input" placeholder="Napisz wiadomość..." autocomplete="off"
+               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}">
+        <button id="btn-send" onclick="sendMessage()">&#10148;</button>
+      </div>
+    </div>
+
+  </div><!-- /app-content -->
+
+  <nav id="app-nav">
+    <button class="nav-btn" id="nav-browse" onclick="showView('browse')">
+      <span class="nav-icon">&#128279;</span>Przeglądaj
+    </button>
+    <button class="nav-btn" id="nav-matches" onclick="showView('matches')">
+      <span class="nav-icon">&#10084;&#65039;</span>Dopasowania
+    </button>
+  </nav>
+
+</div><!-- /screen-app -->
+
+<!-- Match modal -->
+<div id="match-modal" class="hidden">
+  <div class="modal-box">
+    <div class="modal-hearts">🎉❤️🎉</div>
+    <h2>To Match!</h2>
+    <p class="modal-sub">Ty i <span class="modal-partner-name" id="modal-partner-name"></span><br>lubicie się nawzajem!</p>
+    <div style="margin:12px 0">
+      <div class="avatar" id="modal-avatar" style="margin:0 auto;width:72px;height:72px;font-size:1.6rem"></div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn-modal-chat"     onclick="goToMatchChat()">Napisz wiadomość &#8594;</button>
+      <button class="btn-modal-continue" onclick="closeMatchModal()">Przeglądaj dalej</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let token       = localStorage.getItem('rm_token');
+let currentUser = JSON.parse(localStorage.getItem('rm_user') || 'null');
+let ws          = null;
+let wsReady     = false;
+
+let profiles    = [];      // profiles queue for browse view
+let profileIdx  = 0;
+let currentMatchId  = null;
+let pendingMatchData = null; // for modal → chat navigation
+
+/* ═══════════════════════════════════════════════════════════
+   AVATAR HELPERS
+═══════════════════════════════════════════════════════════ */
+const AVATAR_COLORS = [
+  '#FF6B6B','#FF8E53','#FFC75F','#52C41A','#13C2C2',
+  '#1890FF','#722ED1','#EB2F96','#FA541C','#2F54EB'
+];
+
+function avatarColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+
+function initials(name) {
+  return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase();
+}
+
+function avatarEl(name, size = 96, fontSize = '2rem') {
+  const el = document.createElement('div');
+  el.className = 'avatar';
+  el.style.cssText = `background:${avatarColor(name)};width:${size}px;height:${size}px;font-size:${fontSize}`;
+  el.textContent = initials(name);
+  return el;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg, dur = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), dur);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   API HELPER
+═══════════════════════════════════════════════════════════ */
+async function api(method, url, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' }
+  };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body)  opts.body = JSON.stringify(body);
+  const res  = await fetch(url, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Błąd serwera');
+  return data;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH
+═══════════════════════════════════════════════════════════ */
+function switchTab(tab) {
+  document.getElementById('form-login').classList.toggle('hidden',    tab !== 'login');
+  document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
+  document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const fd   = new FormData(e.target);
+  const data = { name: fd.get('name'), password: fd.get('password') };
+  document.getElementById('login-err').textContent = '';
+  try {
+    const res = await api('POST', '/api/login', data);
+    saveSession(res);
+    bootApp();
+  } catch (err) {
+    document.getElementById('login-err').textContent = err.message;
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const fd   = new FormData(e.target);
+  const data = {
+    name:        fd.get('name'),
+    age:         fd.get('age'),
+    city:        fd.get('city'),
+    type:        fd.get('type'),
+    description: fd.get('description'),
+    password:    fd.get('password')
+  };
+  document.getElementById('reg-err').textContent = '';
+  try {
+    const res = await api('POST', '/api/register', data);
+    saveSession(res);
+    bootApp();
+  } catch (err) {
+    document.getElementById('reg-err').textContent = err.message;
+  }
+}
+
+function saveSession({ token: t, user }) {
+  token = t;
+  currentUser = user;
+  localStorage.setItem('rm_token', t);
+  localStorage.setItem('rm_user', JSON.stringify(user));
+}
+
+function logout() {
+  token = null; currentUser = null;
+  localStorage.removeItem('rm_token');
+  localStorage.removeItem('rm_user');
+  if (ws) { ws.close(); ws = null; }
+  document.getElementById('screen-app').classList.add('hidden');
+  document.getElementById('screen-auth').classList.remove('hidden');
+  switchTab('login');
+  loadStats();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WEBSOCKET
+═══════════════════════════════════════════════════════════ */
+function connectWS() {
+  if (ws && ws.readyState <= 1) return;
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ type: 'auth', token }));
+  };
+
+  ws.onmessage = (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+
+    if (msg.type === 'auth_ok') { wsReady = true; }
+
+    if (msg.type === 'message') {
+      const m = msg.data;
+      // If chat is open for this match — append live
+      if (currentMatchId && m.match_id === currentMatchId) {
+        appendMessage(m);
+      } else {
+        showToast(`💬 ${m.sender_name}: ${m.content.slice(0, 60)}`);
+      }
+    }
+
+    if (msg.type === 'match') {
+      const { matchId, partner } = msg.data;
+      showMatchModal(matchId, partner);
+    }
+  };
+
+  ws.onclose = () => {
+    wsReady = false;
+    // Reconnect after 3s if still logged in
+    if (token) setTimeout(connectWS, 3000);
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APP BOOT
+═══════════════════════════════════════════════════════════ */
+function bootApp() {
+  document.getElementById('screen-auth').classList.add('hidden');
+  document.getElementById('screen-app').classList.remove('hidden');
+  connectWS();
+  showView('browse');
+}
+
+function showView(name) {
+  ['browse','matches','chat'].forEach(v => {
+    document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
+  });
+  ['browse','matches'].forEach(v => {
+    const btn = document.getElementById('nav-' + v);
+    if (btn) btn.classList.toggle('active', v === name);
+  });
+
+  if (name === 'browse')  loadBrowse();
+  if (name === 'matches') loadMatches();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BROWSE / SWIPE
+═══════════════════════════════════════════════════════════ */
+async function loadBrowse() {
+  const inner = document.getElementById('browse-inner');
+  inner.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    profiles   = await api('GET', '/api/profiles');
+    profileIdx = 0;
+    renderBrowse(inner);
+  } catch (err) {
+    inner.innerHTML = `<p style="color:var(--muted);text-align:center;padding:40px 20px">${err.message}</p>`;
+  }
+}
+
+function renderBrowse(container) {
+  container = container || document.getElementById('browse-inner');
+  container.innerHTML = '';
+
+  if (!profiles.length || profileIdx >= profiles.length) {
+    container.innerHTML = `
+      <div class="no-profiles">
+        <div class="emoji">🏠</div>
+        <h3>Brak nowych profili</h3>
+        <p>Sprawdź ponownie za jakiś czas lub poczekaj na nowych użytkowników.</p>
+      </div>`;
+    return;
+  }
+
+  const p = profiles[profileIdx];
+
+  const card = document.createElement('div');
+  card.className = 'profile-card';
+  card.id = 'current-card';
+
+  const avatarArea = document.createElement('div');
+  avatarArea.className = 'card-avatar-area';
+  avatarArea.appendChild(avatarEl(p.name, 96, '2rem'));
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'card-name';
+  nameEl.textContent = `${p.name}, ${p.age}`;
+
+  const metaEl = document.createElement('div');
+  metaEl.className = 'card-meta';
+  metaEl.innerHTML = `
+    <span class="badge badge-city">📍 ${escHtml(p.city)}</span>
+    <span class="badge ${p.type === 'roommate' ? 'badge-type-roommate' : 'badge-type-room'}">
+      ${p.type === 'roommate' ? '🏠 Ma pokój' : '🔍 Szuka pokoju'}
+    </span>`;
+
+  avatarArea.appendChild(nameEl);
+  avatarArea.appendChild(metaEl);
+  card.appendChild(avatarArea);
+
+  const body = document.createElement('div');
+  body.className = 'card-body';
+  body.innerHTML = `<p class="card-desc">${escHtml(p.description) || '<em style="color:var(--muted)">Brak opisu</em>'}</p>`;
+  card.appendChild(body);
+
+  const hint = document.createElement('p');
+  hint.className = 'browse-hint';
+  hint.textContent = `${profileIdx + 1} / ${profiles.length} profili`;
+
+  const buttons = document.createElement('div');
+  buttons.className = 'swipe-buttons';
+  buttons.innerHTML = `
+    <button class="btn-swipe btn-pass" onclick="doSwipe('pass')" title="Pomiń">✗</button>
+    <button class="btn-swipe btn-like" onclick="doSwipe('like')" title="Lubię!">♥</button>`;
+
+  container.appendChild(card);
+  container.appendChild(hint);
+  container.appendChild(buttons);
+}
+
+async function doSwipe(direction) {
+  const card = document.getElementById('current-card');
+  if (!card) return;
+
+  const p = profiles[profileIdx];
+
+  // Animate
+  card.classList.add(direction === 'like' ? 'anim-right' : 'anim-left');
+
+  try {
+    const res = await api('POST', '/api/swipe', { targetId: p.id, direction });
+    if (res.matched) {
+      // Might have already shown via WS; show modal if not
+      showMatchModal(res.matchId, p);
+    }
+  } catch (err) {
+    showToast('Błąd: ' + err.message);
+  }
+
+  await sleep(340);
+  profileIdx++;
+  renderBrowse();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MATCHES
+═══════════════════════════════════════════════════════════ */
+async function loadMatches() {
+  const list = document.getElementById('matches-list');
+  list.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const matches = await api('GET', '/api/matches');
+    list.innerHTML = '';
+
+    if (!matches.length) {
+      list.innerHTML = `
+        <div class="no-matches">
+          <div class="emoji">💔</div>
+          <h3>Brak dopasowań</h3>
+          <p>Przeglądaj profile i dawaj serduszka — może wrócą odpowiedzią!</p>
+        </div>`;
+      return;
+    }
+
+    matches.forEach(m => {
+      const item = document.createElement('div');
+      item.className = 'match-item';
+      item.onclick = () => openChat(m.matchId, m.name, m.city, m.type);
+
+      const av = avatarEl(m.name, 48, '1.1rem');
+
+      const info = document.createElement('div');
+      info.className = 'match-info';
+      info.innerHTML = `
+        <div class="match-name">${escHtml(m.name)}, ${m.age}</div>
+        <div class="match-sub">${m.lastMessage ? '💬 ' + escHtml(m.lastMessage) : '📍 ' + escHtml(m.city) + ' · Napisz pierwsze!'}</div>`;
+
+      item.appendChild(av);
+      item.appendChild(info);
+      item.innerHTML += '<span class="match-arrow">›</span>';
+      item.prepend(av); // fix: re-prepend avatar after innerHTML
+      // rebuild properly:
+      item.innerHTML = '';
+      item.appendChild(av);
+      item.appendChild(info);
+      const arr = document.createElement('span');
+      arr.className = 'match-arrow';
+      arr.textContent = '›';
+      item.appendChild(arr);
+
+      list.appendChild(item);
+    });
+  } catch (err) {
+    list.innerHTML = `<p style="color:var(--muted);text-align:center;padding:40px 20px">${err.message}</p>`;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHAT
+═══════════════════════════════════════════════════════════ */
+async function openChat(matchId, partnerName, partnerCity, partnerType) {
+  currentMatchId = matchId;
+
+  document.getElementById('chat-partner-name').textContent = partnerName;
+  document.getElementById('chat-partner-meta').textContent =
+    `📍 ${partnerCity} · ${partnerType === 'roommate' ? 'Ma pokój' : 'Szuka pokoju'}`;
+
+  showView('chat');
+
+  const list = document.getElementById('messages-list');
+  list.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const messages = await api('GET', `/api/matches/${matchId}/messages`);
+    list.innerHTML = '';
+
+    if (!messages.length) {
+      const empty = document.createElement('div');
+      empty.className = 'chat-empty';
+      empty.textContent = 'Brak wiadomości. Napisz pierwszy!';
+      list.appendChild(empty);
+    } else {
+      messages.forEach(m => appendMessage(m, false));
+      scrollChat();
+    }
+  } catch (err) {
+    list.innerHTML = `<p style="color:var(--muted);padding:20px;text-align:center">${err.message}</p>`;
+  }
+
+  document.getElementById('msg-input').focus();
+}
+
+function appendMessage(msg, doScroll = true) {
+  const list = document.getElementById('messages-list');
+
+  // Remove empty placeholder if present
+  const empty = list.querySelector('.chat-empty');
+  if (empty) empty.remove();
+
+  const isMine = msg.sender_id === currentUser.id;
+
+  const wrap = document.createElement('div');
+  wrap.style.display = 'flex';
+  wrap.style.flexDirection = 'column';
+  wrap.style.alignItems = isMine ? 'flex-end' : 'flex-start';
+
+  if (!isMine) {
+    const senderEl = document.createElement('div');
+    senderEl.className = 'msg-sender';
+    senderEl.textContent = msg.sender_name;
+    wrap.appendChild(senderEl);
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble ' + (isMine ? 'mine' : 'theirs');
+  bubble.textContent = msg.content;
+
+  const timeEl = document.createElement('div');
+  timeEl.className = 'msg-time';
+  timeEl.textContent = formatTime(msg.created_at);
+
+  wrap.appendChild(bubble);
+  wrap.appendChild(timeEl);
+  list.appendChild(wrap);
+
+  if (doScroll) scrollChat();
+}
+
+function scrollChat() {
+  const list = document.getElementById('messages-list');
+  list.scrollTop = list.scrollHeight;
+}
+
+function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const content = input.value.trim();
+  if (!content || !currentMatchId) return;
+
+  input.value = '';
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'chat', matchId: currentMatchId, content }));
+  } else {
+    // REST fallback
+    api('POST', `/api/matches/${currentMatchId}/messages`, { content })
+      .then(msg => appendMessage(msg))
+      .catch(err => showToast('Błąd wysyłania: ' + err.message));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MATCH MODAL
+═══════════════════════════════════════════════════════════ */
+let modalMatchId   = null;
+let modalPartnerName = null;
+
+function showMatchModal(matchId, partner) {
+  modalMatchId    = matchId;
+  modalPartnerName = partner.name;
+
+  document.getElementById('modal-partner-name').textContent = partner.name;
+
+  const av = document.getElementById('modal-avatar');
+  av.style.background = avatarColor(partner.name);
+  av.textContent = initials(partner.name);
+
+  document.getElementById('match-modal').classList.remove('hidden');
+}
+
+function closeMatchModal() {
+  document.getElementById('match-modal').classList.add('hidden');
+}
+
+async function goToMatchChat() {
+  closeMatchModal();
+  // Reload matches first to get partner info
+  try {
+    const matches = await api('GET', '/api/matches');
+    const m = matches.find(x => x.matchId === modalMatchId);
+    if (m) {
+      openChat(m.matchId, m.name, m.city, m.type);
+    } else {
+      showView('matches');
+    }
+  } catch {
+    showView('matches');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STATS (shown on auth screen)
+═══════════════════════════════════════════════════════════ */
+async function loadStats() {
+  try {
+    const { userCount, maxUsers } = await api('GET', '/api/stats');
+    document.getElementById('stats-note').textContent =
+      `Wersja demo · ${userCount}/${maxUsers} miejsc zajętych`;
+  } catch { /* ignore */ }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════════ */
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatTime(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const sameDay = d.toDateString() === now.toDateString();
+    if (sameDay) return d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════ */
+(function init() {
+  loadStats();
+  if (token && currentUser) {
+    bootApp();
+  }
+})();
+</script>
+</body>
+</html>
