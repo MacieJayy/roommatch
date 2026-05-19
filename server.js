@@ -13,7 +13,7 @@ const initSqlJs  = require('sql.js');
 const PORT       = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'roommatch-dev-secret-change-me';
 const DB_PATH    = process.env.DB_PATH    || 'roommatch.db';
-const MAX_USERS  = 5;
+const MAX_USERS  = 20;
 
 // ─── App ─────────────────────────────────────────────────────────────────────
 const app    = express();
